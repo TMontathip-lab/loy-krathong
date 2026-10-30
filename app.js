@@ -1,5 +1,5 @@
 'use strict';
-// ต้นแบบสำหรับใช้งานแบบออฟไลน์ ยังไม่เชื่อมฐานข้อมูลกลาง
+// ระบบลอยกระทงออนไลน์ · GitHub Pages + Firebase Auth + Cloud Firestore
 const $=id=>document.getElementById(id);
 const CATS={
  base:{label:'ฐานกระทง',names:['ฐานกลม','ขอบหยัก','กลีบบัว','ใบตองสาน','สองชั้น','ลายดอกไม้']},
@@ -11,12 +11,53 @@ const src=(kind,index)=>kind==='incense'?'assets/incense-candle.png':`assets/${k
 const clone=value=>JSON.parse(JSON.stringify(value));
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 let counter=10,kind='base',selectedId=null,items=[],history=[],historyCursor=-1,interaction=null,customFloats=[],floatNodes=[],floatLoopStarted=false,pendingFloat=null,blessingTimer=null,blessingHideTimer=null;
-const demoFloats=[
- {name:'น้องบัว',wish:'ขอให้ทุกคนมีความสุข',x:69,y:71,size:139,design:[{kind:'base',index:2,x:70,y:140,w:850,h:830},{kind:'petal',index:1,x:180,y:215,w:660,h:660},{kind:'flower',index:1,x:275,y:290,w:440,h:435},{kind:'incense',index:1,x:390,y:150,w:215,h:490}]},
- {name:'เด็กดี ป.5',wish:'ขอให้สอบได้คะแนนดี ๆ',x:82,y:83,size:119,design:[{kind:'base',index:5,x:70,y:145,w:850,h:810},{kind:'petal',index:4,x:180,y:220,w:650,h:660},{kind:'flower',index:3,x:300,y:300,w:420,h:420},{kind:'incense',index:1,x:400,y:160,w:205,h:460}]},
- {name:'มะลิ',wish:'ขอให้ครอบครัวสุขภาพแข็งแรง',x:43,y:84,size:110,design:[{kind:'base',index:4,x:70,y:145,w:850,h:810},{kind:'petal',index:3,x:185,y:220,w:660,h:660},{kind:'flower',index:6,x:290,y:305,w:440,h:430},{kind:'incense',index:1,x:400,y:160,w:205,h:460}]},
- {name:'คนรักประเพณีไทย',wish:'ขอให้มีแต่สิ่งดี ๆ เข้ามาในชีวิต',x:92,y:65,size:98,design:[{kind:'base',index:3,x:70,y:145,w:850,h:810},{kind:'petal',index:2,x:180,y:220,w:650,h:650},{kind:'flower',index:7,x:290,y:310,w:420,h:430}]}];
 let alphaMaps=new Map();
+let liveFloats=[],cloudReady=false,publishing=false;
+const MAX_DECORATIONS=36;
+function safeDesign(design){
+ // Only known image filenames and finite geometry may be rendered from database content.
+ if(!Array.isArray(design))return [];
+ return design.slice(0,MAX_DECORATIONS).flatMap(it=>{
+  if(!it||!Object.prototype.hasOwnProperty.call(CATS,it.kind))return [];
+  const index=Number(it.index),bound=CATS[it.kind].names.length;
+  if(!Number.isInteger(index)||index<1||index>bound)return [];
+  const nums=['x','y','w','h'].map(k=>Number(it[k]));
+  if(nums.some(n=>!Number.isFinite(n)))return [];
+  return [{kind:it.kind,index,x:clamp(nums[0],-800,2200),y:clamp(nums[1],-800,2200),w:clamp(nums[2],45,2500),h:clamp(nums[3],45,2500)}];
+ });
+}
+function seedForId(id){let h=7;for(const c of String(id))h=((h*31+c.charCodeAt(0))|0);return Math.abs(h)%101;}
+function setCloudStatus(status,message){
+ cloudReady=status==='ready';
+ const chip=$('cloudStatus');if(chip){chip.textContent=status==='ready'?'แม่น้ำออนไลน์':status==='connecting'?'กำลังเชื่อมต่อ': 'เชื่อมต่อไม่ได้';chip.title=message||'';}
+ if($('releaseBtn'))$('releaseBtn').disabled=publishing||!cloudReady;
+ // Remote records are shown only when the listener is successfully connected.
+ if(!cloudReady)liveFloats=[];
+ if($('homePage').classList.contains('active')||$('riverPage').classList.contains('active'))renderRivers();
+}
+function receiveCloudFloats(records){
+ const previous=new Map(liveFloats.map(f=>[f.id,f]));
+ liveFloats=records.map(data=>{
+  const design=safeDesign(data.design);
+  if(!design.length)return null;
+  const seed=seedForId(data.id);
+  const old=previous.get(data.id);
+  return {id:data.id,name:String(data.name||'ผู้ร่วมกิจกรรม').slice(0,28),
+   wish:String(data.wish||'').slice(0,160),design,seed,
+   x:32+(seed%60),y:70+(seed%19),size:100+(seed%33),
+   bornAt:old?.bornAt??(performance.now()-((seed%47)*1000)),
+   pausedTotal:old?.pausedTotal||0,pausedAt:old?.pausedAt??null,
+   hovering:old?.hovering||false,focused:old?.focused||false,popoverOpen:false};
+ }).filter(Boolean);
+ if(cloudReady&&($('homePage').classList.contains('active')||$('riverPage').classList.contains('active')))renderRivers();
+}
+function setupCloud(){
+ const bridge=window.krathongCloud;
+ if(!bridge){setCloudStatus('error','ไม่พบไฟล์ firebase-bridge.js');return;}
+ bridge.onStatus(setCloudStatus);
+ bridge.onFloats(receiveCloudFloats);
+}
+
 let lastPaletteSource=null,lastPaletteAction=-1000,openFloat=null;
 function getDims(){return $('artboard').getBoundingClientRect()}
 function toUnits(clientX,clientY){const r=getDims();return {x:(clientX-r.left)*1000/r.width,y:(clientY-r.top)*1000/r.height}}
@@ -45,7 +86,7 @@ function focusItem(id){selectedId=id;renderSelection();renderStack();updateButto
 function showPage(page){
  closeWish();
  for(const k of ['home','editor','wish','river'])$(k+'Page').classList.toggle('active',k===page);
-  for(const f of [...demoFloats,...customFloats]){f.hovering=false;f.focused=false;syncFloatPause(f)}
+  for(const f of [...liveFloats,...customFloats]){f.hovering=false;f.focused=false;syncFloatPause(f)}
   if(page==='wish')renderWishArt();
  if(page==='river'){renderRivers(); syncReleasePanel();}
  window.scrollTo({top:0,behavior:'instant'});
@@ -292,7 +333,7 @@ function renderRivers(){
  // Expired local test krathongs are not recreated when navigating between pages.
  const now=performance.now();
  customFloats=customFloats.filter(f=>now-f.bornAt-(f.pausedTotal||0)-(f.pausedAt!=null?now-f.pausedAt:0)<21500);
- const floats=demoFloats.concat(customFloats).concat(pendingFloat?[pendingFloat]:[]);
+ const floats=(cloudReady?liveFloats:[]).concat(customFloats).concat(pendingFloat?[pendingFloat]:[]);
  for(const target of [$('riverHome'),$('riverFull')]){
   target.replaceChildren();
   floats.forEach((f,i)=>{
@@ -302,7 +343,7 @@ function renderRivers(){
    button.style.setProperty('--size',f.size+'px');
    button.setAttribute('aria-label',`คำอธิษฐานของ ${f.name} แตะเพื่ออ่าน`);
    const visual=document.createElement('span');visual.className='float-visual';
-   visual.style.setProperty('--bob-duration',(3.6+(i%4)*.55)+'s');
+    visual.style.setProperty('--bob-duration',(3.6+((f.seed??i)%4)*.55)+'s');
    const art=createArtFragment(f.design);
    const lab=document.createElement('span');lab.className='name-pill';lab.textContent=f.name;
    visual.append(art,lab);button.append(visual);
@@ -314,7 +355,7 @@ function renderRivers(){
    button.addEventListener('focus',()=>{f.focused=true;syncFloatPause(f)});
    button.addEventListener('blur',()=>{f.focused=false;syncFloatPause(f)});
    target.append(button);
-   floatNodes.push({button,field:target,f,i});
+    floatNodes.push({button,field:target,f,i:f.seed??i});
   });
  }
  updateRiverPositions(performance.now());
@@ -373,22 +414,36 @@ function openWish(f){
 }
 function prepareWish(e){
  e.preventDefault();
- if(items.length===0){alert('กรุณาเพิ่มของตกแต่งกระทงก่อน');showPage('editor');return}
- const name=$('nickname').value.trim(),wish=$('wishText').value.trim();if(!name||!wish)return;
+  if(items.length===0){alert('กรุณาเพิ่มของตกแต่งกระทงก่อน');showPage('editor');return}
+  if(items.length>MAX_DECORATIONS){alert('กระทงหนึ่งใบใช้ของตกแต่งได้สูงสุด '+MAX_DECORATIONS+' ชิ้น กรุณาลดจำนวนก่อนลอย');showPage('editor');return}
+  const name=$('nickname').value.trim(),wish=$('wishText').value.trim();if(!name||!wish)return;
+  // Friendly warning only. Never mistake client-side checks for server moderation.
+  if(/https?:\/\/|www\.|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:0[0-9\s-]{8,12})/i.test(name+' '+wish)){
+   alert('เพื่อความปลอดภัย กรุณาอย่าใส่ลิงก์ อีเมล หรือหมายเลขโทรศัพท์ในชื่อและคำอธิษฐาน');return;
+  }
  hideBlessing();
  pendingFloat={name,wish,x:60+(customFloats.length%4)*3,y:76,size:174,design:clone(items),mine:true,prepared:true};
  showPage('river');
 }
-function launchPrepared(){
- if(!pendingFloat)return;
+async function launchPrepared(){
+ if(!pendingFloat||publishing)return;
+ if(!cloudReady||!window.krathongCloud){
+  alert('ขณะนี้ยังเชื่อมต่อแม่น้ำออนไลน์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง');return;
+ }
+ publishing=true;$('releaseBtn').disabled=true;
  const f=pendingFloat;
- f.prepared=false;f.bornAt=performance.now();
- customFloats.push(f);pendingFloat=null;
- $('releasePanel').classList.add('hidden');$('againBtn').classList.remove('hidden');
- // Keep the same DOM krathong at its foreground position. It starts moving now.
- for(const entry of floatNodes){if(entry.f===f)entry.button.classList.remove('preparing')}
- renderRivers();
- blessingTimer=setTimeout(showBlessing,1000);
+ try{
+  // Save first; a failed write must never be announced as a completed release.
+  const id=await window.krathongCloud.publish({name:f.name,wish:f.wish,design:safeDesign(f.design)});
+  f.id=id;f.prepared=false;f.bornAt=performance.now();f.seed=seedForId(id);
+  customFloats.push(f);pendingFloat=null;
+  $('releasePanel').classList.add('hidden');$('againBtn').classList.remove('hidden');
+  renderRivers();
+  blessingTimer=setTimeout(showBlessing,1000);
+ }catch(error){
+  console.error('ไม่สามารถบันทึกกระทงได้',error);
+  alert('ยังไม่สามารถบันทึกกระทงลงแม่น้ำออนไลน์ได้ กรุณาลองอีกครั้ง หากยังไม่ได้ให้ติดต่อผู้ดูแลระบบ');
+ }finally{publishing=false;$('releaseBtn').disabled=!cloudReady;}
 }
 function cancelPrepared(){pendingFloat=null;hideBlessing();showPage('wish')}
 function beginAgain(){
@@ -434,8 +489,8 @@ function init(){
  $('againBtn').addEventListener('click',beginAgain);
   $('closePopover').addEventListener('click',closeWish);
   document.addEventListener('pointerdown',e=>{if(!$('wishPopover').classList.contains('hidden')&&!e.target.closest('#wishPopover,.river-float'))closeWish();});
- demoFloats.forEach((f,i)=>{f.bornAt=performance.now()-i*4500});
- renderPalette();renderItems();renderStack();track();renderRivers();
+  renderPalette();renderItems();renderStack();track();renderRivers();
+  setupCloud();
  if(!floatLoopStarted){floatLoopStarted=true;requestAnimationFrame(riverAnimationFrame)}
 }
 
