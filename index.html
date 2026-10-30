@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111b46">
+<meta name="description" content="ร่วมสืบสานประเพณีลอยกระทงออนไลน์ โรงเรียนบ้านวังตะโก ประดิษฐ์กระทง ตั้งจิตอธิษฐาน และลอยกระทงดิจิทัล">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ประดิษฐ์กระทงของคุณเอง | โรงเรียนบ้านวังตะโก</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="background" aria-hidden="true"><div class="back-scene"></div><div class="water-motion"></div><div class="water-lines"></div></div>
+<div class="page-shell">
+<header class="site-header">
+  <button id="logoBtn" class="site-title" type="button"><img class="logo-image" src="assets/icon-192.png" alt=""><span><b>ลอยกระทงออนไลน์</b><small>โรงเรียนบ้านวังตะโก</small></span></button>
+  <div class="site-nav">
+    <span class="demo-chip">ตัวอย่าง</span>
+    <button id="musicToggle" class="music-toggle" type="button" aria-pressed="false" aria-label="เปิดเพลงบรรเลง" title="เปิดเพลงบรรเลง">
+      <svg class="music-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path class="sound-wave" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="sound-wave" d="M19 5a10 10 0 0 1 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg>
+      <span id="musicLabel" class="music-label">เปิดเพลง</span>
+    </button>
+    <button class="nav-action" id="gotoRiver" type="button">ชมแม่น้ำ</button><button class="nav-action gold" id="gotoEditor" type="button">ประดิษฐ์กระทง</button>
+  </div>
+</header>
+<main>
+<section id="homePage" class="page home-page active">
+  <div class="hero"><span class="eyebrow">ประเพณีลอยกระทง พ.ศ. 2569</span><p class="school-hero">โรงเรียนบ้านวังตะโก</p><h1>ตั้งจิตอธิษฐาน<br><em>แล้วปล่อยให้สายน้ำพาไป</em></h1><p>ร่วมสืบสานประเพณีขอขมาพระแม่คงคา และปล่อยสิ่งไม่ดีไปกับสายน้ำในรูปแบบดิจิทัล โดยไม่ทิ้งขยะลงแม่น้ำ</p><p>ประดิษฐ์กระทงในแบบของคุณเอง แล้วลอยร่วมกับกระทงบนแม่น้ำ</p><button class="gold-btn huge" id="startBtn">เริ่มประดิษฐ์กระทง <span>→</span></button></div>
+  <div class="river-field" id="riverHome"></div>
+</section>
+<section id="editorPage" class="page editor-page">
+<div class="studio-heading"><div><span class="section-overline">พื้นที่สร้างสรรค์กระทง</span><h1>ประดิษฐ์กระทงในแบบของคุณ</h1><p>เลือกของตกแต่งแล้วจัดวางได้อย่างอิสระ เพิ่มได้หลายชิ้นตามต้องการ</p></div><button id="goWish" class="gold-btn next-top" type="button">เขียนคำอธิษฐาน <span>→</span></button></div>
+<div class="editor-layout">
+  <div class="work-area">
+    <div class="work-topline"><span><span class="live-dot"></span> พื้นที่ออกแบบกระทง</span><span class="work-count" id="workCount">0 ชิ้น</span></div>
+    <div class="pad-shell">
+      <div class="pad-back-glow"></div>
+      <div id="artboard" class="artboard" aria-label="พื้นที่วางและตกแต่งกระทง ใช้เมาส์หรือนิ้วจับรูปภาพและที่จับเพื่อปรับขนาด" tabindex="0"><div class="center-cross" aria-hidden="true"></div><div id="itemLayer" class="item-layer"></div><div id="selectionBox" class="selection-box hidden" aria-hidden="true"><span class="selection-head" id="selectionHead" data-handle="move" title="ลากป้ายนี้เพื่อย้ายของตกแต่งที่เลือก"></span><i class="handle nw" data-handle="nw"></i><i class="handle n" data-handle="n"></i><i class="handle ne" data-handle="ne"></i><i class="handle e" data-handle="e"></i><i class="handle se" data-handle="se"></i><i class="handle s" data-handle="s"></i><i class="handle sw" data-handle="sw"></i><i class="handle w" data-handle="w"></i></div></div>
+      <div class="pad-hint" id="padHint">แตะของตกแต่งเพื่อเลือก</div>
+    </div>
+    <div class="edit-toolbar"><button id="duplicateBtn" title="สร้างสำเนาของตกแต่งที่เลือก">⧉ สำเนา</button><button id="toFrontBtn" title="ย้ายของตกแต่งที่เลือกมาไว้ด้านบน">↑ นำขึ้น</button><button id="toBackBtn" title="ย้ายของตกแต่งที่เลือกไปไว้ด้านล่าง">↓ ส่งลง</button><button id="deleteBtn" class="danger" title="ลบของตกแต่งที่เลือก">✕ ลบ</button><span class="tool-spacer"></span><button id="undoBtn" title="ย้อนกลับ (⌘/Ctrl + Z)">↶ ย้อนกลับ</button><button id="redoBtn" title="ทำซ้ำการแก้ไข (⌘/Ctrl + Shift + Z)">↷ ทำซ้ำการแก้ไข</button><button id="clearBtn" class="muted" title="ล้างของตกแต่งทั้งหมด">ล้างกระทง</button></div>
+    <div class="work-help"><strong>วิธีจัดวาง:</strong> เลือกของตกแต่งแล้วลากมาวางในพื้นที่ออกแบบ · ลากตัวภาพเพื่อย้าย · ดึงจุดมุมเพื่อย่อ–ขยายโดยคงสัดส่วน (กด Shift เพื่อปรับอิสระ) · ดึงจุดด้านข้างเพื่อบีบรูป · บนมือถือแตะภาพเพื่อเพิ่ม หรือจับสัญลักษณ์ลากเพื่อย้ายมาวาง</div>
+  </div>
+  <aside class="palette">
+    <div class="palette-top"><span class="section-overline">ของตกแต่งกระทง</span><h2>เลือกของตกแต่ง</h2><p>แตะเพื่อเพิ่ม หรือจับสัญลักษณ์ลากเพื่อจัดวาง</p></div>
+    <div class="category-tabs" id="tabs"><button type="button" data-kind="base" class="active">ฐาน</button><button type="button" data-kind="petal">กลีบใบตอง</button><button type="button" data-kind="flower">ดอกไม้</button><button type="button" data-kind="incense">ธูปเทียน</button></div>
+    <div class="palette-grid" id="paletteGrid"></div>
+    <div class="stack-header"><span>ของตกแต่งในกระทง <b id="stackCount">0</b></span><small>เลือกชั้นที่ซ้อนกัน</small></div>
+    <div id="stackList" class="stack-list" aria-live="polite"></div>
+    <button id="mobileToWish" class="gold-btn full" type="button">เขียนคำอธิษฐาน <span>→</span></button>
+  </aside>
+</div>
+</section>
+<section id="wishPage" class="page wish-page">
+  <div class="wish-layout"><div class="wish-preview"><div class="wish-preview-title">กระทงของคุณ</div><div id="wishArt" class="showcase-art"></div><button class="nav-action" id="backEditor" type="button">← กลับไปตกแต่ง</button></div><form class="wish-card" id="wishForm"><span class="section-overline">เขียนคำอธิษฐาน</span><h1>อธิษฐานก่อนลอย</h1><p>ตั้งจิตอธิษฐาน แล้วปล่อยให้สายน้ำพาไป</p><label for="nickname">ชื่อเล่นหรือนามแฝง</label><input id="nickname" maxlength="28" autocomplete="off" placeholder="เช่น น้องบัว" required><label for="wishText">คำอธิษฐาน</label><textarea id="wishText" rows="4" maxlength="160" placeholder="ขอให้ครอบครัวมีความสุข..." required></textarea><small>คุณจะได้เห็นกระทงรออยู่ที่แม่น้ำก่อนกดลอยจริง</small><button class="gold-btn full" type="submit">ไปที่แม่น้ำ <span>→</span></button></form></div>
+</section>
+<section id="riverPage" class="page river-page"><div class="river-head"><span class="section-overline">ลอยกระทงออนไลน์</span><h1>กระทงบนสายน้ำ</h1><p>กระทงลอยอยู่ด้วยกันบนแม่น้ำ • แตะที่กระทงเพื่อดูชื่อและคำอธิษฐาน</p><button class="gold-btn" id="againBtn">+ เริ่มประดิษฐ์ใหม่</button></div><div class="river-field river-wide" id="riverFull"></div>
+  <div id="releasePanel" class="release-panel hidden" aria-live="polite">
+    <span class="release-eyebrow">พร้อมลอยกระทงแล้ว</span>
+    <h2>กระทงของคุณพร้อมแล้ว</h2>
+    <p>กระทงของคุณรออยู่บนผิวน้ำ กดปุ่มเมื่อต้องการปล่อยกระทง</p>
+    <div class="release-actions"><button id="releaseBtn" class="gold-btn release-primary" type="button">ลอยกระทง</button><button id="cancelReleaseBtn" class="nav-action" type="button">← แก้ไขคำอธิษฐาน</button></div>
+  </div>
+  <div id="blessingMessage" class="blessing-message hidden" role="status" aria-live="polite">
+    <div class="blessing-symbol" aria-hidden="true">✦</div>
+    <h2>กระทงของคุณลอยลงสู่สายน้ำแล้ว</h2>
+    <p>ขอให้คำอธิษฐานของคุณลอยไปกับสายน้ำ<br>และสมหวังในสิ่งดีงามที่ปรารถนา</p>
+  </div>
+</section>
+</main>
+<footer>ตัวอย่างทดลองพร้อมข้อมูลจำลอง · ยังไม่เชื่อมฐานข้อมูลกลางหรือเผยแพร่จริง</footer>
+</div>
+<div id="dragGhost" class="drag-ghost hidden" aria-hidden="true"><img src="" alt=""><span>ปล่อยในพื้นที่ออกแบบ</span></div>
+<div id="wishPopover" class="wish-popover hidden" role="dialog" aria-modal="false"><button id="closePopover" class="close-popover" type="button" aria-label="ปิด">×</button><small>คำอธิษฐานบนสายน้ำ</small><h3 id="popupName"></h3><p id="popupWish"></p></div>
+<!-- ผู้ใช้กดปุ่มเปิดเพลงเอง: รองรับนโยบาย autoplay ของ Chrome / Safari บนมือถือ -->
+<audio id="bgMusic" src="assets/loy-krathong-music.mp3" loop preload="none"></audio>
+<script src="asset-masks.js"></script><script src="app.js"></script>
+</body></html>
