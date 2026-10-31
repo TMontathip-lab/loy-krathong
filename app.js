@@ -412,21 +412,34 @@ function openWish(f){
  $('popupName').textContent=f.name;$('popupWish').textContent=f.wish;
  $('wishPopover').classList.remove('hidden');
 }
+function showWishGuardMessage(message, field){
+ const notice=$('wishGuardMessage');
+ if(notice){notice.textContent=message||'';notice.hidden=!message;}
+ for(const id of ['nickname','wishText'])$(id).removeAttribute('aria-invalid');
+ if(field&&$(field)){$(field).setAttribute('aria-invalid','true');$(field).focus();}
+}
 function prepareWish(e){
  e.preventDefault();
   if(items.length===0){alert('กรุณาเพิ่มของตกแต่งกระทงก่อน');showPage('editor');return}
   if(items.length>MAX_DECORATIONS){alert('กระทงหนึ่งใบใช้ของตกแต่งได้สูงสุด '+MAX_DECORATIONS+' ชิ้น กรุณาลดจำนวนก่อนลอย');showPage('editor');return}
-  const name=$('nickname').value.trim(),wish=$('wishText').value.trim();if(!name||!wish)return;
-  // Friendly warning only. Never mistake client-side checks for server moderation.
-  if(/https?:\/\/|www\.|[\w.+-]+@[\w.-]+\.[a-z]{2,}|(?:0[0-9\s-]{8,12})/i.test(name+' '+wish)){
-   alert('เพื่อความปลอดภัย กรุณาอย่าใส่ลิงก์ อีเมล หรือหมายเลขโทรศัพท์ในชื่อและคำอธิษฐาน');return;
-  }
+  const result=window.krathongGuard.check($('nickname').value,$('wishText').value);
+  if(!result.ok){showWishGuardMessage(result.message,result.field);return;}
+  showWishGuardMessage('');
+  const {name,wish}=result;
  hideBlessing();
  pendingFloat={name,wish,x:60+(customFloats.length%4)*3,y:76,size:174,design:clone(items),mine:true,prepared:true};
  showPage('river');
 }
 async function launchPrepared(){
  if(!pendingFloat||publishing)return;
+ const checked=window.krathongGuard.check(pendingFloat.name,pendingFloat.wish);
+ if(!checked.ok){
+  showPage('wish');showWishGuardMessage(checked.message,checked.field);return;
+ }
+ const remaining=window.krathongGuard.remainingMs();
+ if(remaining>0){
+  alert('เพิ่งลอยกระทงสำเร็จไปแล้ว กรุณารออีกประมาณ '+window.krathongGuard.seconds(remaining)+' วินาทีก่อนส่งกระทงใบใหม่');return;
+ }
  if(!cloudReady||!window.krathongCloud){
   alert('ขณะนี้ยังเชื่อมต่อแม่น้ำออนไลน์ไม่ได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง');return;
  }
@@ -435,6 +448,7 @@ async function launchPrepared(){
  try{
   // Save first; a failed write must never be announced as a completed release.
   const id=await window.krathongCloud.publish({name:f.name,wish:f.wish,design:safeDesign(f.design)});
+  window.krathongGuard.recordSuccess();
   f.id=id;f.prepared=false;f.bornAt=performance.now();f.seed=seedForId(id);
   customFloats.push(f);pendingFloat=null;
   $('releasePanel').classList.add('hidden');$('againBtn').classList.remove('hidden');
@@ -442,14 +456,18 @@ async function launchPrepared(){
   blessingTimer=setTimeout(showBlessing,1000);
  }catch(error){
   console.error('ไม่สามารถบันทึกกระทงได้',error);
-  alert('ยังไม่สามารถบันทึกกระทงลงแม่น้ำออนไลน์ได้ กรุณาลองอีกครั้ง หากยังไม่ได้ให้ติดต่อผู้ดูแลระบบ');
+  if(error?.code==='permission-denied'){
+   alert('ระบบไม่อนุญาตให้บันทึกในขณะนี้ อาจส่งกระทงถี่เกินไป หรือมีข้อความที่ไม่ผ่านเงื่อนไข กรุณาตรวจสอบและลองอีกครั้งหลัง 1 นาที');
+  }else{
+   alert('ยังไม่สามารถบันทึกกระทงลงแม่น้ำออนไลน์ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง');
+  }
  }finally{publishing=false;$('releaseBtn').disabled=!cloudReady;}
 }
 function cancelPrepared(){pendingFloat=null;hideBlessing();showPage('wish')}
 function beginAgain(){
  pendingFloat=null;hideBlessing();
  items=initialDesign();selectedId=null;track();renderItems();renderStack();
- $('wishForm').reset();showPage('editor');
+ $('wishForm').reset();showWishGuardMessage('');showPage('editor');
 }
 function init(){
  setupBackgroundMusic();
@@ -484,6 +502,7 @@ function init(){
  $('mobileToWish').addEventListener('click',()=>items.length?showPage('wish'):alert('กรุณาเพิ่มของตกแต่งกระทงก่อน'));
  $('backEditor').addEventListener('click',()=>showPage('editor'));
  $('wishForm').addEventListener('submit',prepareWish);
+ for(const id of ['nickname','wishText'])$(id).addEventListener('input',()=>showWishGuardMessage(''));
  $('releaseBtn').addEventListener('click',launchPrepared);
  $('cancelReleaseBtn').addEventListener('click',cancelPrepared);
  $('againBtn').addEventListener('click',beginAgain);

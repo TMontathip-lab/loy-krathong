@@ -71,3 +71,7 @@
  .music-toggle .music-label{display:none;}
  .site-nav .nav-action{padding-inline:7px;}
 }
+
+/* Gentle content validation; inherits the established theme. */
+.wish-guard-message:not([hidden]){display:block;margin:9px 0 4px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,201,133,.65);background:rgba(135,53,47,.37);color:#fff0d8;font-size:12px;line-height:1.65}
+.wish-card input[aria-invalid="true"],.wish-card textarea[aria-invalid="true"]{border-color:#ffbe8e;outline:1px solid #ffbe8e}

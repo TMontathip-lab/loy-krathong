@@ -13,6 +13,7 @@ const firebaseConfig = {
 // This caps reads and animation load on students' phones.
 const MAX_LIVE_KRATHONGS = 18;
 const MAX_DECORATIONS = 36;
+// One krathong per anonymous Firebase UID every 60 seconds; enforced by Firestore Rules.
 const ownCreatedIds = new Set();
 let status = 'connecting', statusMessage = 'กำลังเชื่อมต่อฐานข้อมูล';
 let notifyStatus = () => {};
@@ -36,21 +37,35 @@ window.krathongCloud = {
     }
     name = String(name || '').trim();
     wish = String(wish || '').trim();
-    if (!name || name.length > 28 || !wish || wish.length > 160 ||
-        !Array.isArray(design) || design.length < 1 || design.length > MAX_DECORATIONS) {
-      throw new Error('ชื่อ ข้อความ หรือจำนวนของตกแต่งไม่ถูกต้อง');
+    const checked = window.krathongGuard?.check(name, wish);
+    if (!checked || !checked.ok) {
+      throw new Error(checked?.message || 'กรุณาตรวจสอบคำอธิษฐานก่อนส่ง');
     }
+    if (!Array.isArray(design) || design.length < 1 || design.length > MAX_DECORATIONS) {
+      throw new Error('จำนวนของตกแต่งไม่ถูกต้อง');
+    }
+    name = checked.name;
+    wish = checked.wish;
     const parts = design.map(({ kind, index, x, y, w, h }) => ({
       kind, index, x, y, w, h
     }));
     const ref = firestoreFns.doc(firestoreFns.collection(db, 'krathongs'));
+    const rateRef = firestoreFns.doc(db, 'krathongLimits', auth.currentUser.uid);
     ownCreatedIds.add(ref.id);  // Hide this browser's release from the repeating remote stream.
     try {
-      await firestoreFns.setDoc(ref, {
+      // Atomic pair: Firestore Rules verify the cooldown record and the new krathong.
+      // Never store the visitor's name or wish in the cooldown record.
+      const batch = firestoreFns.writeBatch(db);
+      batch.set(ref, {
         uid: auth.currentUser.uid,
         name, wish, design: parts,
         createdAt: firestoreFns.serverTimestamp()
       });
+      batch.set(rateRef, {
+        lastCreatedAt: firestoreFns.serverTimestamp(),
+        lastKrathongId: ref.id
+      });
+      await batch.commit();
     } catch (error) {
       ownCreatedIds.delete(ref.id);
       throw error;
