@@ -1,7 +1,7 @@
 // Firebase bridge for GitHub Pages. Works without npm or a bundler.
 // Firestore SDK is loaded from Google's CDN; no secret service-account keys belong here.
 const firebaseConfig = {
-  apiKey: 'AIzaSyCxSon5n0ctozsGCTSkq7EedZRnFS_usK4',
+  apiKey: 'AIzaSyDboMWwpdSqcc0S9nUaPe2T-cxlG_Y_QHI',
   authDomain: 'loy-krathong-school.firebaseapp.com',
   projectId: 'loy-krathong-school',
   storageBucket: 'loy-krathong-school.firebasestorage.app',
