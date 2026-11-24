@@ -21,7 +21,7 @@ let notifyFloats = () => {};
 let db, auth, firestoreFns;
 let isReady = false;
 let notifyTotal = () => {};
-let lastTotal = null, lastTotalFetch = 0;
+let lastTotal = null;
 
 function updateStatus(next, message) {
   status = next;
@@ -30,19 +30,17 @@ function updateStatus(next, message) {
   notifyStatus(status, statusMessage);
 }
 
-// Counts every krathong on the server (not just the newest 18 shown on the river).
-async function refreshTotal(force = false) {
-  if (!db || !firestoreFns?.getCountFromServer) return;
-  const now = Date.now();
-  if (!force && now - lastTotalFetch < 5000) return; // กันอ่านถี่เกินไป
-  lastTotalFetch = now;
-  try {
-    const snap = await firestoreFns.getCountFromServer(firestoreFns.collection(db, 'krathongs'));
-    lastTotal = snap.data().count;
+// Visitor-style counter: stats/total holds the all-time number of krathongs released.
+// It is incremented in the same atomic batch as each new krathong (see publish).
+function watchTotal() {
+  const statsRef = firestoreFns.doc(db, 'stats', 'total');
+  firestoreFns.onSnapshot(statsRef, snap => {
+    const value = snap.exists() ? Number(snap.data().total) : 0;
+    lastTotal = Number.isFinite(value) ? value : 0;
     notifyTotal(lastTotal);
-  } catch (error) {
-    console.warn('นับจำนวนกระทงไม่สำเร็จ', error);
-  }
+  }, error => {
+    console.warn('อ่านตัวนับกระทงไม่สำเร็จ ตรวจ Firestore Rules ของ stats/total', error);
+  });
 }
 
 window.krathongCloud = {
@@ -69,6 +67,7 @@ window.krathongCloud = {
     }));
     const ref = firestoreFns.doc(firestoreFns.collection(db, 'krathongs'));
     const rateRef = firestoreFns.doc(db, 'krathongLimits', auth.currentUser.uid);
+    const statsRef = firestoreFns.doc(db, 'stats', 'total');
     ownCreatedIds.add(ref.id);  // Hide this browser's release from the repeating remote stream.
     try {
       // Atomic pair: Firestore Rules verify the cooldown record and the new krathong.
@@ -83,8 +82,8 @@ window.krathongCloud = {
         lastCreatedAt: firestoreFns.serverTimestamp(),
         lastKrathongId: ref.id
       });
+      batch.set(statsRef, { total: firestoreFns.increment(1) }, { merge: true });
       await batch.commit();
-      refreshTotal(true);
     } catch (error) {
       ownCreatedIds.delete(ref.id);
       throw error;
@@ -108,7 +107,7 @@ async function startFirebase() {
     if (typeof auth.authStateReady === 'function') await auth.authStateReady();
     if (!auth.currentUser) await authFns.signInAnonymously(auth);
     db = fsFns.getFirestore(app);
-    refreshTotal(true);
+    watchTotal();
     const recentQuery = fsFns.query(
       fsFns.collection(db, 'krathongs'),
       fsFns.orderBy('createdAt', 'desc'),
@@ -121,7 +120,6 @@ async function startFirebase() {
       if (!snapshot.metadata.fromCache) {
         updateStatus('ready', 'เชื่อมต่อแม่น้ำออนไลน์แล้ว');
         notifyFloats(realRows);
-        refreshTotal();
       } else {
         updateStatus('connecting', 'ยังไม่สามารถยืนยันข้อมูลล่าสุดจากเซิร์ฟเวอร์');
       }
