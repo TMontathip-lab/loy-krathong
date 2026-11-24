@@ -5,7 +5,7 @@
   const COOLDOWN_MS = 60 * 1000;
   const STORAGE_KEY = 'loyKrathong:lastSuccessfulRelease:v1';
   const BLOCKED_PHRASES = [
-    'เหี้ย', 'ควย', 'เย็ด', 'สัส', 'แม่ง', 'ไอ้สัด', 'ไอ้เวร', 'อีดอก', 'fuck', 'shit', 'bitch'
+    'เหี้ย', 'ควย', 'เย็ด', 'สัส', 'แม่ง', 'ไอ้สัด', 'ไอ้เวร', 'อีดอก', 'fuck', 'shit', 'bitch', '67', 'สกีบีดี้',
   ];
   const PRIVATE_PATTERN = /https?:\/\/|www\.|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(?:0[689](?:[\s-]?\d){8})|(?:\+66(?:[\s-]?\d){9})|บ้านเลขที่\s*\d+/i;
   const normalize = value => String(value || '').normalize('NFKC').trim();
