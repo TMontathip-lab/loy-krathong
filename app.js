@@ -51,9 +51,20 @@ function receiveCloudFloats(records){
  }).filter(Boolean);
  if(cloudReady&&($('homePage').classList.contains('active')||$('riverPage').classList.contains('active')))renderRivers();
 }
+let shownTotal=null,totalAnim=null;
 function renderTotal(n){
- const text=Number(n).toLocaleString('th-TH');
- for(const id of ['totalHome','totalRiver']){const el=$(id);if(el)el.textContent=text;}
+ const target=Number(n);if(!Number.isFinite(target))return;
+ const paint=v=>{const t=Math.round(v).toLocaleString('th-TH');for(const id of ['totalHome','totalRiver']){const el=$(id);if(el)el.textContent=t;}};
+ cancelAnimationFrame(totalAnim);
+ const from=shownTotal==null?0:shownTotal;
+ if(from===target||window.matchMedia('(prefers-reduced-motion:reduce)').matches){shownTotal=target;paint(target);return;}
+ const start=performance.now(),dur=shownTotal==null?1300:700;
+ const step=now=>{
+  const t=Math.min(1,(now-start)/dur),eased=1-Math.pow(1-t,3);
+  shownTotal=from+(target-from)*eased;paint(shownTotal);
+  if(t<1)totalAnim=requestAnimationFrame(step);else{shownTotal=target;paint(target);}
+ };
+ totalAnim=requestAnimationFrame(step);
 }
 function setupCloud(){
  const bridge=window.krathongCloud;
