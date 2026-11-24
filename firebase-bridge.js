@@ -20,6 +20,8 @@ let notifyStatus = () => {};
 let notifyFloats = () => {};
 let db, auth, firestoreFns;
 let isReady = false;
+let notifyTotal = () => {};
+let lastTotal = null, lastTotalFetch = 0;
 
 function updateStatus(next, message) {
   status = next;
@@ -28,9 +30,25 @@ function updateStatus(next, message) {
   notifyStatus(status, statusMessage);
 }
 
+// Counts every krathong on the server (not just the newest 18 shown on the river).
+async function refreshTotal(force = false) {
+  if (!db || !firestoreFns?.getCountFromServer) return;
+  const now = Date.now();
+  if (!force && now - lastTotalFetch < 5000) return; // กันอ่านถี่เกินไป
+  lastTotalFetch = now;
+  try {
+    const snap = await firestoreFns.getCountFromServer(firestoreFns.collection(db, 'krathongs'));
+    lastTotal = snap.data().count;
+    notifyTotal(lastTotal);
+  } catch (error) {
+    console.warn('นับจำนวนกระทงไม่สำเร็จ', error);
+  }
+}
+
 window.krathongCloud = {
   onStatus(callback) { notifyStatus = callback; callback(status, statusMessage); },
   onFloats(callback) { notifyFloats = callback; },
+  onTotal(callback) { notifyTotal = callback; if (lastTotal != null) callback(lastTotal); },
   async publish({ name, wish, design }) {
     if (!isReady || !auth?.currentUser || !db || !firestoreFns) {
       throw new Error('ยังไม่ได้เชื่อมต่อ Firebase');
@@ -66,6 +84,7 @@ window.krathongCloud = {
         lastKrathongId: ref.id
       });
       await batch.commit();
+      refreshTotal(true);
     } catch (error) {
       ownCreatedIds.delete(ref.id);
       throw error;
@@ -89,6 +108,7 @@ async function startFirebase() {
     if (typeof auth.authStateReady === 'function') await auth.authStateReady();
     if (!auth.currentUser) await authFns.signInAnonymously(auth);
     db = fsFns.getFirestore(app);
+    refreshTotal(true);
     const recentQuery = fsFns.query(
       fsFns.collection(db, 'krathongs'),
       fsFns.orderBy('createdAt', 'desc'),
@@ -101,6 +121,7 @@ async function startFirebase() {
       if (!snapshot.metadata.fromCache) {
         updateStatus('ready', 'เชื่อมต่อแม่น้ำออนไลน์แล้ว');
         notifyFloats(realRows);
+        refreshTotal();
       } else {
         updateStatus('connecting', 'ยังไม่สามารถยืนยันข้อมูลล่าสุดจากเซิร์ฟเวอร์');
       }
