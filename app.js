@@ -51,11 +51,16 @@ function receiveCloudFloats(records){
  }).filter(Boolean);
  if(cloudReady&&($('homePage').classList.contains('active')||$('riverPage').classList.contains('active')))renderRivers();
 }
+function renderTotal(n){
+ const text=Number(n).toLocaleString('th-TH');
+ for(const id of ['totalHome','totalRiver']){const el=$(id);if(el)el.textContent=text;}
+}
 function setupCloud(){
  const bridge=window.krathongCloud;
  if(!bridge){setCloudStatus('error','ไม่พบไฟล์ firebase-bridge.js');return;}
  bridge.onStatus(setCloudStatus);
  bridge.onFloats(receiveCloudFloats);
+ bridge.onTotal(renderTotal);
 }
 
 let lastPaletteSource=null,lastPaletteAction=-1000,openFloat=null;
