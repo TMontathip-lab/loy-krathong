@@ -75,3 +75,7 @@
 /* Gentle content validation; inherits the established theme. */
 .wish-guard-message:not([hidden]){display:block;margin:9px 0 4px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,201,133,.65);background:rgba(135,53,47,.37);color:#fff0d8;font-size:12px;line-height:1.65}
 .wish-card input[aria-invalid="true"],.wish-card textarea[aria-invalid="true"]{border-color:#ffbe8e;outline:1px solid #ffbe8e}
+
+/* Total krathong counter */
+.krathong-total{display:inline-flex;align-items:center;gap:6px;margin:6px 0 16px!important;padding:7px 14px;border-radius:30px;border:1px solid #ffe1a1aa;background:#12275ccc;color:#fff0c6!important;font-size:13px!important;line-height:1.4!important;font-weight:600}
+.krathong-total b{color:#ffe19e;font-size:1.25em;font-variant-numeric:tabular-nums}
